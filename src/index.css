@@ -4,13 +4,29 @@
   box-sizing: border-box;
 }
 
+:root {
+  --book-blue-dark: #013088;
+  --book-blue-light: #86a8e2;
+  --book-orange: #f4ab37;
+  --book-orange-dark: #ce8a28;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.88);
+}
+
+html,
 body {
   margin: 0;
   min-height: 100svh;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
-  color: #1a1a1a;
-  background: #fafafa;
+  color: var(--text-primary);
+  background: radial-gradient(var(--book-blue-light), var(--book-blue-dark) 80%);
+}
+
+#root {
+  width: 100vw;
+  min-height: 100svh;
+  background: radial-gradient(var(--book-blue-light), var(--book-blue-dark) 80%);
 }
 
 .app {
@@ -27,5 +43,5 @@ h1 {
 
 p {
   margin: 0;
-  color: #444;
+  color: var(--text-secondary);
 }

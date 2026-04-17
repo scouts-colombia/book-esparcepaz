@@ -21,78 +21,43 @@ body {
   line-height: 1.5;
   color: var(--text-primary);
   background: radial-gradient(var(--book-blue-light), var(--book-blue-dark) 80%);
+  overflow: hidden;
 }
 
 #root {
   width: 100vw;
   min-height: 100svh;
   background: radial-gradient(var(--book-blue-light), var(--book-blue-dark) 80%);
+  overflow: hidden;
 }
 
 .app {
   min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(2rem, 4vw, 3.25rem);
-  font-weight: 600;
-}
-
-p {
-  margin: 0;
-  color: var(--text-secondary);
-}
-
-button,
-img {
-  user-select: none;
+  padding: 4.75rem 0.75rem 4.75rem;
 }
 
 .book-shell {
-  width: min(100%, 78rem);
-  display: grid;
-  gap: 1.5rem;
-}
-
-.book-copy {
-  display: grid;
-  gap: 0.35rem;
-  justify-items: center;
-  text-align: center;
-}
-
-.eyebrow {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.book-status {
-  font-size: 0.95rem;
-}
-
-.book-stage {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
+  width: min(100%, 72rem);
+  display: flex;
+  justify-content: center;
+  overflow: visible;
+  padding: 0.75rem 2rem;
 }
 
 .book-frame {
   display: flex;
   justify-content: center;
-  padding: 1rem;
-  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
 }
 
 .flip-book {
   margin: 0 auto;
+  max-width: 100%;
+  overflow: visible;
 }
 
 .page {
@@ -112,43 +77,248 @@ img {
   pointer-events: none;
 }
 
-.nav-button {
+.ui-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0 0 0.5rem;
+}
+
+.brand-strip {
+  display: flex;
+  justify-content: center;
+}
+
+.brand-strip img {
+  display: block;
+  width: min(20rem, 72vw);
+  height: auto;
+}
+
+.controls-strip {
+  pointer-events: auto;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.icon-button {
+  width: 3.1rem;
+  height: 3.1rem;
   border: 0;
   border-radius: 999px;
-  padding: 0.9rem 1.1rem;
-  min-width: 7.5rem;
-  background: rgba(255, 255, 255, 0.96);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
   color: var(--book-blue-dark);
-  font: inherit;
-  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 8px 24px rgba(1, 48, 136, 0.22);
   transition:
     transform 160ms ease,
     opacity 160ms ease,
     background-color 160ms ease;
 }
 
-.nav-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: #ffffff;
+.icon-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
 }
 
-.nav-button:disabled {
-  opacity: 0.55;
+.icon-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #f8fbff;
+}
+
+.icon-button:disabled {
+  background: rgba(255, 255, 255, 0.5);
+  color: rgba(1, 48, 136, 0.5);
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  transition: opacity 300ms ease;
+}
+
+.modal-backdrop.is-hidden {
+  opacity: 0;
+}
+
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.modal-panel {
+  position: relative;
+  width: min(100%, 44rem);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 1.5rem;
+  background: #ffffff;
+  color: #334155;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22);
+  transition:
+    opacity 300ms ease,
+    transform 300ms ease;
+}
+
+.modal-panel.is-entering {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.modal-content {
+  padding: 2rem;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modal-title-group h2 {
+  margin: 0;
+  color: var(--book-blue-dark);
+  font-size: clamp(1.85rem, 5vw, 2.4rem);
+}
+
+.modal-mini-logo {
+  width: 3.5rem;
+  height: 3.5rem;
+  object-fit: contain;
+}
+
+.modal-close {
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 2.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.instructions-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.instruction-block {
+  border-left: 4px solid var(--book-blue-dark);
+  padding-left: 1rem;
+}
+
+.instruction-block h3 {
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--book-blue-dark);
+  font-size: 1.25rem;
+}
+
+.instruction-block h3 svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: currentColor;
+}
+
+.instruction-block ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #475569;
+}
+
+.instruction-block li + li {
+  margin-top: 0.45rem;
+}
+
+.modal-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.footer-logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.footer-logos img {
+  height: 3rem;
+  width: auto;
+  object-fit: contain;
+}
+
+.footer-logos img[alt='Esparce Paz'] {
+  height: 2.5rem;
+}
+
+.modal-footer p {
+  margin: 0;
+  color: #64748b;
+  text-align: center;
+  font-size: 0.95rem;
 }
 
 @media (max-width: 900px) {
-  .book-stage {
-    grid-template-columns: 1fr;
+  .app {
+    padding-top: 4.25rem;
+    padding-bottom: 4.25rem;
   }
 
-  .book-frame {
-    order: -1;
-    padding: 0.5rem 0;
+  .book-shell {
+    padding: 0.5rem 1rem;
   }
 
-  .nav-button {
-    width: 100%;
+  .icon-button {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .icon-button svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .modal-content {
+    padding: 1.5rem;
+  }
+
+  .modal-title-group {
+    align-items: flex-start;
+  }
+
+  .footer-logos img {
+    height: 2.5rem;
   }
 }

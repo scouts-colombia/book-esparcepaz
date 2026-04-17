@@ -2,8 +2,21 @@ import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import HTMLFlipBook from 'react-pageflip'
 
 const TOTAL_PAGES = 44
+const MIN_ZOOM = 1
+const MAX_ZOOM = 3.6
+const WHEEL_ZOOM_STEP = 0.12
+const MOBILE_BREAKPOINT = 900
+const MOBILE_DEFAULT_ZOOM = 1.34
+const DESKTOP_BASE_WIDTH = 1920
+const DESKTOP_BASE_ZOOM = 1.52
+const DESKTOP_MAX_DEFAULT_ZOOM = 3
 
 type FlipCorner = 'top' | 'bottom'
+type PinchState = {
+  initialDistance: number
+  initialScale: number
+}
+type ZoomTouch = { clientX: number; clientY: number }
 
 type FlipBookHandle = {
   pageFlip: () => {
@@ -29,9 +42,44 @@ const BookPage = forwardRef<HTMLDivElement, BookPageProps>(function BookPage(
   )
 })
 
+const clampZoom = (value: number) => {
+  const roundedValue = Number(value.toFixed(2))
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, roundedValue))
+}
+
+const getTouchDistance = (firstTouch: ZoomTouch, secondTouch: ZoomTouch) => {
+  return Math.hypot(secondTouch.clientX - firstTouch.clientX, secondTouch.clientY - firstTouch.clientY)
+}
+
+const getIsMobileViewport = () => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return window.innerWidth <= MOBILE_BREAKPOINT
+}
+
+const getDefaultZoom = (isMobileViewport: boolean) => {
+  if (isMobileViewport) {
+    return MOBILE_DEFAULT_ZOOM
+  }
+
+  if (typeof window === 'undefined') {
+    return DESKTOP_BASE_ZOOM
+  }
+
+  const widthRatio = window.innerWidth / DESKTOP_BASE_WIDTH
+  const responsiveDesktopZoom = DESKTOP_BASE_ZOOM * Math.max(1, widthRatio)
+
+  return Math.min(DESKTOP_MAX_DEFAULT_ZOOM, clampZoom(responsiveDesktopZoom))
+}
+
 export default function App() {
   const bookRef = useRef<FlipBookHandle | null>(null)
+  const pinchStateRef = useRef<PinchState | null>(null)
+  const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport)
   const [currentPage, setCurrentPage] = useState(0)
+  const [zoom, setZoom] = useState(() => getDefaultZoom(getIsMobileViewport()))
   const [showModal, setShowModal] = useState(true)
   const [isClosing, setIsClosing] = useState(false)
   const [isOpening, setIsOpening] = useState(true)
@@ -74,12 +122,57 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [showModal, openedManually])
 
+  useEffect(() => {
+    const handleResize = () => {
+      const nextIsMobileViewport = getIsMobileViewport()
+      setIsMobileViewport(nextIsMobileViewport)
+      setZoom(getDefaultZoom(nextIsMobileViewport))
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   const goToPreviousPage = () => {
     bookRef.current?.pageFlip().flipPrev('top')
   }
 
   const goToNextPage = () => {
     bookRef.current?.pageFlip().flipNext('top')
+  }
+
+  const handleWheelZoom = (event: React.WheelEvent<HTMLDivElement>) => {
+    event.preventDefault()
+
+    const zoomDelta = event.deltaY < 0 ? WHEEL_ZOOM_STEP : -WHEEL_ZOOM_STEP
+    setZoom((currentZoom) => clampZoom(currentZoom + zoomDelta))
+  }
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 2) {
+      return
+    }
+
+    pinchStateRef.current = {
+      initialDistance: getTouchDistance(event.touches[0], event.touches[1]),
+      initialScale: zoom,
+    }
+  }
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 2 || !pinchStateRef.current) {
+      return
+    }
+
+    event.preventDefault()
+
+    const nextDistance = getTouchDistance(event.touches[0], event.touches[1])
+    const scaleFactor = nextDistance / pinchStateRef.current.initialDistance
+    setZoom(clampZoom(pinchStateRef.current.initialScale * scaleFactor))
+  }
+
+  const handleTouchEnd = () => {
+    pinchStateRef.current = null
   }
 
   const openModal = () => {
@@ -132,6 +225,9 @@ export default function App() {
                       <strong>Click izquierdo:</strong> pasar pagina
                     </li>
                     <li>
+                      <strong>Rueda del mouse:</strong> zoom in/out
+                    </li>
+                    <li>
                       <strong>Click en bordes:</strong> avanzar o retroceder
                     </li>
                   </ul>
@@ -147,6 +243,9 @@ export default function App() {
                   <ul>
                     <li>
                       <strong>Desliza:</strong> cambiar de pagina
+                    </li>
+                    <li>
+                      <strong>Dos dedos:</strong> zoom in/out
                     </li>
                     <li>
                       <strong>Toca los botones:</strong> navegar por el libro
@@ -179,42 +278,53 @@ export default function App() {
       <main className="app">
         <section className="book-shell">
           <div className="book-frame">
-            <HTMLFlipBook
-              style={{}}
-              width={395}
-              height={512}
-              minWidth={250}
-              maxWidth={395}
-              minHeight={324}
-              maxHeight={512}
-              startPage={0}
-              size="stretch"
-              drawShadow
-              flippingTime={900}
-              usePortrait
-              startZIndex={0}
-              autoSize
-              maxShadowOpacity={0.35}
-              showCover
-              mobileScrollSupport={false}
-              clickEventForward
-              useMouseEvents
-              swipeDistance={30}
-              showPageCorners
-              disableFlipByClick={false}
-              className="flip-book"
-              ref={bookRef}
-              onFlip={(event: { data: number }) => setCurrentPage(event.data)}
+            <div
+              className={`zoom-shell ${zoom > 1 ? 'is-zoomed' : ''}`}
+              onWheel={handleWheelZoom}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
             >
-              {pages.map((page, index) => (
-                <BookPage
-                  key={page.id}
-                  imageSrc={page.imageSrc}
-                  alt={`Esparce Paz - imagen ${page.sourcePage}`}
-                  isCover={index === 0 || index === pages.length - 1}
-                />
-              ))}
-            </HTMLFlipBook>
+              <div className="zoom-stage" style={{ transform: `scale(${zoom})` }}>
+                <HTMLFlipBook
+                  style={{}}
+                  width={395}
+                  height={512}
+                  minWidth={250}
+                  maxWidth={395}
+                  minHeight={324}
+                  maxHeight={512}
+                  startPage={0}
+                  size="stretch"
+                  drawShadow
+                  flippingTime={900}
+                  usePortrait={isMobileViewport}
+                  startZIndex={0}
+                  autoSize
+                  maxShadowOpacity={0.35}
+                  showCover
+                  mobileScrollSupport={false}
+                  clickEventForward
+                  useMouseEvents
+                  swipeDistance={30}
+                  showPageCorners
+                  disableFlipByClick={false}
+                  className="flip-book"
+                  ref={bookRef}
+                  onFlip={(event: { data: number }) => setCurrentPage(event.data)}
+                >
+                  {pages.map((page, index) => (
+                    <BookPage
+                      key={page.id}
+                      imageSrc={page.imageSrc}
+                      alt={`Esparce Paz - imagen ${page.sourcePage}`}
+                      isCover={index === 0 || index === pages.length - 1}
+                    />
+                  ))}
+                </HTMLFlipBook>
+              </div>
+            </div>
           </div>
         </section>
       </main>
